@@ -103,18 +103,25 @@ function loadDynamicMenus(menu) {
       
       // Add top-level menus
       if (menuGroups['root']) {
-        menuGroups['root'].forEach(item => {
+        menuGroups['root'].forEach((item, index) => {
           const subMenus = menuGroups[item.name] || [];
           if (subMenus.length > 0) {
             // Has sub-menus
             let subMenu = SpreadsheetApp.getUi().createMenu(item.name);
             subMenus.forEach(sub => {
-              subMenu.addItem(sub.name, 'executeCustomMenu_' + sub.id);
+              // Use a simple callback that captures the menu ID
+              subMenu.addItem(sub.name, 'loadCustomMenu');
+              // Store last selected menu for callback
+              const scriptProperties = PropertiesService.getScriptProperties();
+              scriptProperties.setProperty('lastMenuClicked_' + sub.name, sub.id);
             });
             menu.addSubMenu(subMenu);
           } else {
             // Direct menu item
-            menu.addItem(item.name, 'executeCustomMenu_' + item.id);
+            menu.addItem(item.name, 'loadCustomMenu');
+            // Store menu ID for this menu name
+            const scriptProperties = PropertiesService.getScriptProperties();
+            scriptProperties.setProperty('lastMenuClicked_' + item.name, item.id);
           }
         });
       }
@@ -641,26 +648,30 @@ function showPageSetupDialog() {
  */
 function applyPageSettings(settings) {
   try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Note: Google Sheets API doesn't directly support setting page size via Apps Script
+    // These settings are typically set through the UI: File > Page Setup
+    // We'll inform the user about the manual steps
+    
+    let message = 'Page settings configuration:\n\n';
+    message += 'Page Size: ' + settings.pageSize + '\n';
+    message += 'Orientation: ' + settings.orientation + '\n\n';
+    message += 'To apply these settings:\n';
+    message += '1. Go to File → Page Setup\n';
+    message += '2. Set paper size to ' + settings.pageSize + '\n';
+    message += '3. Set orientation to ' + settings.orientation + '\n';
+    
+    // We can set some print settings that are available
     const sheet = SpreadsheetApp.getActiveSheet();
     
-    // Set page size
-    if (settings.pageSize === 'A4') {
-      sheet.setPageSize(297, 210);
-    } else if (settings.pageSize === 'LETTER') {
-      sheet.setPageSize(279, 216);
-    } else if (settings.pageSize === 'LEGAL') {
-      sheet.setPageSize(356, 216);
-    }
+    // Set print gridlines off for cleaner output
+    sheet.setPrintGridlines(false);
     
-    // Set orientation
-    if (settings.orientation === 'landscape') {
-      // Swap dimensions for landscape
-      const width = sheet.getPageSize().width;
-      const height = sheet.getPageSize().height;
-      sheet.setPageSize(height, width);
-    }
+    // Show helpful message
+    SpreadsheetApp.getUi().alert('Page Setup', message, SpreadsheetApp.getUi().ButtonSet.OK);
     
-    return { success: true, message: 'Page settings applied!' };
+    return { success: true, message: 'Page setup instructions displayed!' };
   } catch (e) {
     return { success: false, message: 'Error: ' + e.message };
   }
@@ -722,8 +733,45 @@ function getRainbowColor(index) {
 }
 
 /**
+ * Load custom menu content
+ * Called when a custom menu item is clicked
+ */
+function loadCustomMenu() {
+  // Get the menu that was clicked by checking properties
+  // This is a workaround for Apps Script's limitation on dynamic function names
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const menusJson = scriptProperties.getProperty('customMenus') || '[]';
+  const menus = JSON.parse(menusJson);
+  
+  // Show selection dialog since we can't determine which specific menu was clicked
+  if (menus.length === 0) {
+    SpreadsheetApp.getUi().alert('No Menus', 'No custom menus found. Admin needs to add menus first.', SpreadsheetApp.getUi().ButtonSet.OK);
+    return;
+  }
+  
+  // Create a selection list
+  const ui = SpreadsheetApp.getUi();
+  let menuList = 'Available Menus:\n\n';
+  menus.forEach((m, i) => {
+    menuList += (i + 1) + '. ' + m.name + ' (' + m.category + ')\n';
+  });
+  menuList += '\nEnter the number of the menu you want to load:';
+  
+  const response = ui.prompt('Load Custom Menu', menuList, ui.ButtonSet.OK_CANCEL);
+  
+  if (response.getSelectedButton() === ui.Button.OK) {
+    const index = parseInt(response.getResponseText()) - 1;
+    if (index >= 0 && index < menus.length) {
+      executeCustomMenu(menus[index].id);
+    } else {
+      ui.alert('Invalid Selection', 'Please enter a valid menu number.', ui.ButtonSet.OK);
+    }
+  }
+}
+
+/**
  * Execute custom menu
- * This function is dynamically called based on menu ID
+ * This function is called with menu ID
  */
 function executeCustomMenu(menuId) {
   const scriptProperties = PropertiesService.getScriptProperties();
@@ -766,6 +814,13 @@ function insertContentAsTable(sheet, content) {
     // Parse content as array
     const rows = content.split('\n').map(row => row.split('\t'));
     const startRow = 3; // After header
+    
+    // Validate rows exist and have content
+    if (!rows || rows.length === 0 || !rows[0] || rows[0].length === 0) {
+      Logger.log('No valid content to insert');
+      SpreadsheetApp.getUi().alert('Error', 'No valid content to insert. Please check the content format.', SpreadsheetApp.getUi().ButtonSet.OK);
+      return;
+    }
     
     // Clear existing content (preserve header)
     const lastRow = sheet.getLastRow();
