@@ -15,6 +15,9 @@ const BRAND_NAME = 'MN EDU HELP';
 const TAGLINE = 'practice made easy now';
 const FOOTER_TEXT = 'created by DAVESIR a.t. dathakvs';
 
+// Fill in blanks percentage (40% of content will be removed)
+const FILL_IN_BLANKS_PERCENTAGE = 0.4;
+
 // Rainbow colors - light shades
 const RAINBOW_COLORS = [
   '#FFE5E5', // Light Pink
@@ -452,8 +455,8 @@ function fillInBlanks() {
   for (let i = startRow; i < endRow; i++) {
     for (let j = 0; j < values[i].length; j++) {
       if (values[i][j] !== '') {
-        // 40% chance to blank
-        if (Math.random() < 0.4) {
+        // Random chance to blank based on configured percentage
+        if (Math.random() < FILL_IN_BLANKS_PERCENTAGE) {
           cellsToBlank.push({ row: i + 1, col: j + 1 });
         }
       }
@@ -807,6 +810,13 @@ function executeCustomMenu(menuId) {
 }
 
 /**
+ * Validate content rows for insertion
+ */
+function isValidContentRows(rows) {
+  return rows && rows.length > 0 && rows[0] && rows[0].length > 0;
+}
+
+/**
  * Insert content as table
  */
 function insertContentAsTable(sheet, content) {
@@ -816,7 +826,7 @@ function insertContentAsTable(sheet, content) {
     const startRow = 3; // After header
     
     // Validate rows exist and have content
-    if (!rows || rows.length === 0 || !rows[0] || rows[0].length === 0) {
+    if (!isValidContentRows(rows)) {
       Logger.log('No valid content to insert');
       SpreadsheetApp.getUi().alert('Error', 'No valid content to insert. Please check the content format.', SpreadsheetApp.getUi().ButtonSet.OK);
       return;

@@ -183,15 +183,39 @@
     function copyLink() {
       const linkText = document.getElementById('linkText').textContent;
       
+      // Try modern Clipboard API first, fallback to deprecated method
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(linkText)
+          .then(() => {
+            showMessage('Link copied to clipboard!', 'success');
+          })
+          .catch(err => {
+            // Fallback to deprecated method
+            copyLinkFallback(linkText);
+          });
+      } else {
+        // Fallback for older browsers
+        copyLinkFallback(linkText);
+      }
+    }
+    
+    function copyLinkFallback(text) {
       // Create temporary textarea to copy
       const textarea = document.createElement('textarea');
-      textarea.value = linkText;
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
       document.body.appendChild(textarea);
       textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
       
-      showMessage('Link copied to clipboard!', 'success');
+      try {
+        document.execCommand('copy');
+        showMessage('Link copied to clipboard!', 'success');
+      } catch (err) {
+        showMessage('Could not copy link. Please copy manually.', 'error');
+      }
+      
+      document.body.removeChild(textarea);
     }
     
     function onError(error) {
