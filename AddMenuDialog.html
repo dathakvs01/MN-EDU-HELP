@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;700&display=swap');
+    
+    body {
+      font-family: 'Comfortaa', cursive;
+      padding: 20px;
+      background: linear-gradient(135deg, #FFE5E5, #E5F5FF, #F5E5FF);
+      margin: 0;
+    }
+    
+    h2 {
+      color: #6644FF;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .tagline {
+      text-align: center;
+      font-size: 12px;
+      font-style: italic;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #444;
+      font-weight: 600;
+    }
+    
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #E5E5FF;
+      border-radius: 10px;
+      font-family: 'Comfortaa', cursive;
+      font-size: 14px;
+      box-sizing: border-box;
+      background: white;
+    }
+    
+    textarea {
+      min-height: 150px;
+      resize: vertical;
+    }
+    
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #6644FF;
+      box-shadow: 0 0 10px rgba(102, 68, 255, 0.2);
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 20px;
+      font-family: 'Comfortaa', cursive;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #6644FF, #AA44FF);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(102, 68, 255, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #E5E5FF;
+      color: #6644FF;
+    }
+    
+    .btn-secondary:hover {
+      background: #D5D5FF;
+    }
+    
+    .message {
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      text-align: center;
+      display: none;
+    }
+    
+    .success {
+      background: #E5FFCC;
+      color: #44AA44;
+      border: 2px solid #44AA44;
+    }
+    
+    .error {
+      background: #FFE5E5;
+      color: #FF4444;
+      border: 2px solid #FF4444;
+    }
+    
+    .info-text {
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎨 MN EDU HELP</h2>
+  <div class="tagline">practice made easy now</div>
+  
+  <div id="message" class="message"></div>
+  
+  <form id="menuForm" onsubmit="handleSubmit(event)">
+    <div class="form-group">
+      <label for="parent">Parent Menu:</label>
+      <input type="text" id="parent" name="parent" placeholder="Enter 'root' for top-level menu" value="root" required>
+      <div class="info-text">Enter 'root' for top-level or an existing menu name for sub-menu</div>
+    </div>
+    
+    <div class="form-group">
+      <label for="menuName">Menu Name:</label>
+      <input type="text" id="menuName" name="menuName" placeholder="e.g., Learning Words" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="category">Category:</label>
+      <select id="category" name="category" required>
+        <option value="">-- Select Category --</option>
+        <option value="words">Words</option>
+        <option value="numbers">Numbers</option>
+        <option value="tables">Tables</option>
+        <option value="pictures">Pictures</option>
+        <option value="custom">Custom Content</option>
+      </select>
+      <div class="info-text">Select the type of educational content</div>
+    </div>
+    
+    <div class="form-group">
+      <label for="content">Content:</label>
+      <textarea id="content" name="content" placeholder="Enter content here... (for tables, use tab-separated values, one row per line)" required></textarea>
+      <div class="info-text">For tables: use tabs between columns, new lines for rows</div>
+    </div>
+    
+    <div class="button-group">
+      <button type="submit" class="btn-primary">✅ Add Menu</button>
+      <button type="button" class="btn-secondary" onclick="google.script.host.close()">❌ Cancel</button>
+    </div>
+  </form>
+  
+  <script>
+    function handleSubmit(event) {
+      event.preventDefault();
+      
+      const formData = {
+        parent: document.getElementById('parent').value,
+        name: document.getElementById('menuName').value,
+        category: document.getElementById('category').value,
+        content: document.getElementById('content').value
+      };
+      
+      // Show loading
+      showMessage('Adding menu...', 'info');
+      
+      // Call server function
+      google.script.run
+        .withSuccessHandler(onSuccess)
+        .withFailureHandler(onError)
+        .saveNewMenu(formData);
+    }
+    
+    function onSuccess(result) {
+      if (result.success) {
+        showMessage(result.message, 'success');
+        // Reset form
+        document.getElementById('menuForm').reset();
+        // Close after 2 seconds
+        setTimeout(() => {
+          google.script.host.close();
+        }, 2000);
+      } else {
+        showMessage(result.message, 'error');
+      }
+    }
+    
+    function onError(error) {
+      showMessage('Error: ' + error.message, 'error');
+    }
+    
+    function showMessage(msg, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = msg;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
