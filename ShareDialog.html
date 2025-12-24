@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;700&display=swap');
+    
+    body {
+      font-family: 'Comfortaa', cursive;
+      padding: 20px;
+      background: linear-gradient(135deg, #FFE5E5, #E5F5FF, #F5E5FF);
+      margin: 0;
+    }
+    
+    h2 {
+      color: #6644FF;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .tagline {
+      text-align: center;
+      font-size: 12px;
+      font-style: italic;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #444;
+      font-weight: 600;
+    }
+    
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #E5E5FF;
+      border-radius: 10px;
+      font-family: 'Comfortaa', cursive;
+      font-size: 14px;
+      background: white;
+    }
+    
+    .share-options {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .share-btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 15px;
+      font-family: 'Comfortaa', cursive;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #FFE5E5, #FFE5CC);
+      color: #FF8800;
+      border: 2px solid #FF8800;
+    }
+    
+    .share-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(255, 136, 0, 0.3);
+    }
+    
+    .share-link {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      word-break: break-all;
+      display: none;
+      border: 2px solid #6644FF;
+    }
+    
+    .share-link-text {
+      font-size: 12px;
+      color: #6644FF;
+      margin-bottom: 10px;
+    }
+    
+    .copy-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Comfortaa', cursive;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #6644FF;
+      color: white;
+      margin-top: 10px;
+    }
+    
+    .copy-btn:hover {
+      background: #5533EE;
+    }
+    
+    .message {
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      text-align: center;
+      display: none;
+    }
+    
+    .success {
+      background: #E5FFCC;
+      color: #44AA44;
+      border: 2px solid #44AA44;
+    }
+    
+    .info-text {
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>📤 Share MN EDU HELP</h2>
+  <div class="tagline">practice made easy now</div>
+  
+  <div id="message" class="message"></div>
+  
+  <div class="form-group">
+    <label for="format">Select Format:</label>
+    <select id="format">
+      <option value="pdf">📄 PDF Document</option>
+      <option value="excel">📊 Excel Spreadsheet</option>
+      <option value="jpeg">🖼️ JPEG Image</option>
+      <option value="sheet">🔗 Google Sheets Link</option>
+    </select>
+  </div>
+  
+  <div class="share-options">
+    <button class="share-btn" onclick="generateLink()">🔗 Get Link</button>
+  </div>
+  
+  <div class="info-text">
+    💡 After getting the link, you can share it via WhatsApp, SMS, or generate a QR code using online tools.
+  </div>
+  
+  <div id="shareLink" class="share-link">
+    <div class="share-link-text">📎 Your share link:</div>
+    <div id="linkText" style="font-size: 12px; color: #666;"></div>
+    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+  </div>
+  
+  <script>
+    function generateLink() {
+      const format = document.getElementById('format').value;
+      
+      google.script.run
+        .withSuccessHandler(displayLink)
+        .withFailureHandler(onError)
+        .generateShareLink(format);
+    }
+    
+    function displayLink(result) {
+      const linkDiv = document.getElementById('shareLink');
+      const linkText = document.getElementById('linkText');
+      
+      linkText.textContent = result.url;
+      linkDiv.style.display = 'block';
+      
+      showMessage('Link generated for: ' + result.sheetName, 'success');
+    }
+    
+    function copyLink() {
+      const linkText = document.getElementById('linkText').textContent;
+      
+      // Create temporary textarea to copy
+      const textarea = document.createElement('textarea');
+      textarea.value = linkText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      
+      showMessage('Link copied to clipboard!', 'success');
+    }
+    
+    function onError(error) {
+      showMessage('Error: ' + error.message, 'error');
+    }
+    
+    function showMessage(msg, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = msg;
+      messageDiv.className = 'message ' + type;
+      messageDiv.style.display = 'block';
+      
+      setTimeout(() => {
+        messageDiv.style.display = 'none';
+      }, 5000);
+    }
+  </script>
+</body>
+</html>
